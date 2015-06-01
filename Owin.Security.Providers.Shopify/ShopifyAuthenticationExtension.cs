@@ -23,6 +23,15 @@ namespace Owin.Security.Providers.Shopify
 
         public static IAppBuilder UseShopifyAuthentication(this IAppBuilder app, string clientId, string clientSecret)
         {
+            if (app == null)
+                throw new ArgumentNullException("app");
+
+            if (clientId == null)
+                throw new ArgumentNullException("clientId");
+
+            if (clientSecret == null)
+                throw new ArgumentNullException("clientSecret");
+
             return app.UseShopifyAuthentication(new ShopifyAuthenticationOptions
             {
                 ClientId = clientId,

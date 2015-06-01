@@ -28,12 +28,11 @@ namespace Owin.Security.Providers.Shopify
             CallbackPath = new PathString("/signin-shopify");
             AuthenticationMode = AuthenticationMode.Passive;
             Scope = new List<string>();
-            BackchannelTimeout = TimeSpan.FromSeconds(60);
         }
 
         /// <summary>
         /// Gets or sets the a pinned certificate validator to use to validate the endpoints used
-        /// in back channel communications belong to Facebook.
+        /// in back channel communications.
         /// </summary>
         /// <value>
         /// The pinned certificate validator.
@@ -43,7 +42,7 @@ namespace Owin.Security.Providers.Shopify
         public ICertificateValidator BackchannelCertificateValidator { get; set; }
 
         /// <summary>
-        /// Gets or sets timeout value in milliseconds for back channel communications with Facebook.
+        /// Gets or sets timeout value in milliseconds for back channel communications.
         /// </summary>
         /// <value>
         /// The back channel timeout in milliseconds.

@@ -1,4 +1,2 @@
-# Owin.Security.Providers.Shopify
-Shopify OWIN Authentication provider
-
-Under development
+#Owin.Security.Providers.Shopify
+An OWIN authentication middleware for Shopify, based on [KatanaProject](http://katanaproject.codeplex.com/)'s Facebook authentication module implementation, but it is slightly different, because Shopify does not fully implement ouath2 (there is no *state* parameter provided from the authentication server) and it must send the login request to an url like *{myshopname}.myshopify.com/admin/oauth/authorize?client_id={api_key}&scope={scopes}&redirect_uri={redirect_uri}*.
