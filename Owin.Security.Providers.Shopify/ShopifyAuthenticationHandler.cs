@@ -13,6 +13,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 
 namespace Owin.Security.Providers.Shopify
 {
@@ -34,7 +35,8 @@ namespace Owin.Security.Providers.Shopify
         protected override async Task<AuthenticationTicket> AuthenticateCoreAsync()
         {
             // Workaround: Shopify does not implement oath2 fully (no state parameter returned with the redirect_uri)
-            AuthenticationProperties properties = new AuthenticationProperties() { RedirectUri = "/Account/ExternalLoginCallback" };
+            //AuthenticationProperties properties = new AuthenticationProperties() { RedirectUri = "/Account/ExternalLoginCallback" };
+            AuthenticationProperties properties = null;
 
             try
             {
@@ -42,6 +44,7 @@ namespace Owin.Security.Providers.Shopify
                 string hmac = null;
                 string timestamp = null;
                 string shop = null;
+                string state = null;
 
                 IReadableStringCollection query = Request.Query;
                 IList<string> values = query.GetValues("code");
@@ -68,17 +71,29 @@ namespace Owin.Security.Providers.Shopify
                     shop = values[0];
                 }
 
-                // Replace the shopify url in the format string
-                TokenEndpoint = TokenEndpoint.Replace("{shop}", shop);
-                UserInfoEndpoint = UserInfoEndpoint.Replace("{shop}", shop);
+                values = query.GetValues("state");
+                if (values != null && values.Count == 1)
+                {
+                    state = values[0];
+                }
+
+                properties = Options.StateDataFormat.Unprotect(state);
+                if (properties == null)
+                {
+                    return null;
+                }
 
                 var signBase = string.Format("code={0}&shop={1}&timestamp={2}", code, shop, timestamp);
 
                 // Verify the response with the method specified at https://docs.shopify.com/api/authentication/oauth#verification
-                if (!ValidateShopifySignature(signBase, hmac, Options.ClientSecret))
+                if (!ValidateCorrelationId(properties, logger) || !ValidateShopifySignature(signBase, hmac, Options.ClientSecret))
                 {
                     return new AuthenticationTicket(null, properties);
                 }
+
+                // Replace the shopify url in the format string
+                TokenEndpoint = TokenEndpoint.Replace("{shop}", shop);
+                UserInfoEndpoint = UserInfoEndpoint.Replace("{shop}", shop);
 
                 // Check for error
                 if (Request.Query.Get("error") != null)
@@ -184,6 +199,8 @@ namespace Owin.Security.Providers.Shopify
                     properties.RedirectUri = currentUri;
                 }
 
+                GenerateCorrelationId(properties);
+
                 // Comma separated
                 string scope = string.Join(",", Options.Scope);
 
@@ -197,10 +214,11 @@ namespace Owin.Security.Providers.Shopify
                 var currentShop = properties.Dictionary["shop"];
 
                 string authorizationEndpoint =
-                    "https://"+ currentShop +"/admin/oauth/authorize" +
+                    "https://" + currentShop + "/admin/oauth/authorize" +
                         "?client_id=" + Uri.EscapeDataString(Options.ClientId) +
                         "&redirect_uri=" + Uri.EscapeDataString(redirectUri) +
-                        "&scope=" + Uri.EscapeDataString(scope);
+                        "&scope=" + Uri.EscapeDataString(scope) +
+                        "&state=" + Options.StateDataFormat.Protect(properties);
 
                 Response.Redirect(authorizationEndpoint);
             }

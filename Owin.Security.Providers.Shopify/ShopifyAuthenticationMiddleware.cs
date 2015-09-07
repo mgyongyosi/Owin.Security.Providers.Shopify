@@ -40,6 +40,14 @@ namespace Owin.Security.Providers.Shopify
             if (String.IsNullOrEmpty(Options.SignInAsAuthenticationType))
                 Options.SignInAsAuthenticationType = app.GetDefaultSignInAsAuthenticationType();
 
+            if (Options.StateDataFormat == null)
+            {
+                IDataProtector dataProtector = app.CreateDataProtector(
+                    typeof(ShopifyAuthenticationMiddleware).FullName,
+                    Options.AuthenticationType, "v1");
+                Options.StateDataFormat = new PropertiesDataFormat(dataProtector);
+            }
+
             httpClient = new HttpClient(ResolveHttpMessageHandler(Options))
             {
                 Timeout = Options.BackchannelTimeout,

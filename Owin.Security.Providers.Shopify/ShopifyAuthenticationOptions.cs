@@ -28,6 +28,7 @@ namespace Owin.Security.Providers.Shopify
             CallbackPath = new PathString("/signin-shopify");
             AuthenticationMode = AuthenticationMode.Passive;
             Scope = new List<string>();
+            BackchannelTimeout = TimeSpan.FromSeconds(60);
         }
 
         /// <summary>
@@ -72,5 +73,7 @@ namespace Owin.Security.Providers.Shopify
         /// Gets or sets the <see cref="IShopifyAuthenticationProvider"/> used to handle authentication events.
         /// </summary>
         public IShopifyAuthenticationProvider Provider { get; set; }
+
+        public ISecureDataFormat<AuthenticationProperties> StateDataFormat { get; set; }
     }
 }
