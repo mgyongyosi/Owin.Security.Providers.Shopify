@@ -83,7 +83,8 @@ namespace Owin.Security.Providers.Shopify
                     return null;
                 }
 
-                var signBase = string.Format("code={0}&shop={1}&timestamp={2}", code, shop, timestamp);
+                //TODO: refactor -> correct usage is to remove hmac and signature property from the querystring and create the signature from the rest
+                var signBase = string.Format("code={0}&shop={1}&state={2}&timestamp={3}", code, shop, state, timestamp);
 
                 // Verify the response with the method specified at https://docs.shopify.com/api/authentication/oauth#verification
                 if (!ValidateCorrelationId(properties, logger) || !ValidateShopifySignature(signBase, hmac, Options.ClientSecret))
