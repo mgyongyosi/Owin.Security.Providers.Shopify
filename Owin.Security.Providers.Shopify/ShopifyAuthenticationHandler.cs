@@ -14,6 +14,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web;
+using System.Linq;
 
 namespace Owin.Security.Providers.Shopify
 {
@@ -83,11 +84,10 @@ namespace Owin.Security.Providers.Shopify
                     return null;
                 }
 
-                //TODO: refactor -> correct usage is to remove hmac and signature property from the querystring and create the signature from the rest
-                var signBase = string.Format("code={0}&shop={1}&state={2}&timestamp={3}", code, shop, state, timestamp);
+                var signature = GetStringForValidation(Request.Query);
 
                 // Verify the response with the method specified at https://docs.shopify.com/api/authentication/oauth#verification
-                if (!ValidateCorrelationId(properties, logger) || !ValidateShopifySignature(signBase, hmac, Options.ClientSecret))
+                if (!ValidateCorrelationId(properties, logger) || !ValidateShopifySignature(signature, hmac, Options.ClientSecret))
                 {
                     return new AuthenticationTicket(null, properties);
                 }
@@ -159,13 +159,31 @@ namespace Owin.Security.Providers.Shopify
         /// <param name="signatureBase">Generated signature from the query string parameters.</param>
         /// <param name="hmacFromServer">hmac query string parameter.</param>
         /// <param name="clientSecret">Shopify app client secret.</param>
-        /// <returns></returns>
+        /// <returns>The result of the validation</returns>
         private bool ValidateShopifySignature(string signatureBase, string hmacFromServer, string clientSecret)
         {
             var hash = new HMACSHA256(Encoding.UTF8.GetBytes(clientSecret));
             var generatedSignatureHmac = BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(signatureBase))).Replace("-", string.Empty);
 
             return string.Equals(generatedSignatureHmac, hmacFromServer, StringComparison.InvariantCultureIgnoreCase);
+        }
+
+        /// <summary>
+        /// Extract the required string for creating the hash
+        /// </summary>
+        /// <param name="query">QueryString object (from Request.Query)</param>
+        /// <returns>The required hash from the querystring</returns>
+        private string GetStringForValidation(IReadableStringCollection query)
+        {
+            StringBuilder result = new StringBuilder();
+            foreach (var param in query.Where(kvp => kvp.Key != "hmac" && kvp.Key != "signature").OrderBy(kvp => kvp.Key))
+            {
+                if (result.Length > 0)
+                    result.Append("&");
+
+                result.AppendFormat("{0}={1}", param.Key, param.Value.First());
+            }
+            return result.ToString();
         }
 
         protected override Task ApplyResponseChallengeAsync()
